@@ -1,7 +1,9 @@
 from rest_framework.response import Response
 from rest_framework import status
 from biochatter_metta.prompts import BioCypherPromptEngine
-
+from .models import Schema, Atomspace
+from .serializers import SchemaSerializer, AtomspaceSerializer
+import json, ast
 
 # Check if the id exists in the database
 def record_exists(record_model, record_id):
@@ -48,9 +50,15 @@ def add_record(record_data, record_model, record_serializer, additional_fields=N
         return Response(serialized_record.errors, status=status.HTTP_400_BAD_REQUEST)
     
 def add_message_record(user_data, chat_id, message_model, message_serializer_class, llm_context=''):
+    schema = SchemaSerializer( Schema.objects.last() )
+    schema_file_path = schema.data.get('schema_file', None)
+
     prompt_engine = BioCypherPromptEngine(
             model_name='gpt-3.5-turbo',
-            schema_config_or_info_path='./api/bio_data/biocypher_config/schema_config.yaml',
+            # schema_config_or_info_path=f'./{schema_file_path}',
+            # schema_mappings='./bio_data/biocypher_config/schema_mappings.json',
+            
+            schema_config_or_info_path=f'./api/bio_data/biocypher_config/schema_config.yaml',
             schema_mappings='./api/bio_data/biocypher_config/schema_mappings.json',
             openai_api_key='*****'
         )
@@ -61,7 +69,7 @@ def add_message_record(user_data, chat_id, message_model, message_serializer_cla
             user_question=user_message,
             with_llm_response=True,
             llm_context=llm_context
-            )
+        )
 
         if not metta_response['llm_response']:
             raise Exception('Unable to get LLM response!')
@@ -89,3 +97,25 @@ def add_message_record(user_data, chat_id, message_model, message_serializer_cla
     )
 
     return user_record, llm_record
+
+def update_schema_mappings(atomspace_record=None):
+    if atomspace_record is None:
+        atomspace_records = AtomspaceSerializer(Atomspace.objects.all(), many=True).data
+    else:
+        atomspace_records = [atomspace_record]
+
+    for atomspace in atomspace_records:
+        nodes = ast.literal_eval(atomspace.get('nodes','[]') or '[]')
+        edges = ast.literal_eval(atomspace.get('edges','[]') or '[]')
+
+        with open("bio_data/schema_mappings.json", "r+") as schema_mappings:
+            schema = json.load(schema_mappings)
+            for node in nodes:
+                schema[f'nodes'][node]['metta_location'] = atomspace.get('node_metta_file', None)
+
+            for edge in edges:
+                schema[f'edges'][edge]['metta_location'] = atomspace.get('edge_metta_file', None)
+
+            schema_mappings.seek(0)  # rewind cursor to beginning of file
+            json.dump(schema, schema_mappings)
+            schema_mappings.truncate() # delete any trailing data (if new content is shorter)
