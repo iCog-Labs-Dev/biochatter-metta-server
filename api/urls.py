@@ -43,5 +43,8 @@ urlpatterns = [
     # GET - List all MeTTa files beloning to the schema
     # POST - Upload a MeTTa file for an entity  | required fields= entity_name(str), metta_file(file)
                                               # | Send request as Multipart formdata
-
+    path('atomspaces/<int:pk>/', AtomspaceDetail.as_view()),
+    # GET - Fetch atomspace data by ID
+    # PUT - Update atomspace data    | only pass the updated fields
+    # DELETE - Delete the atomspace data (along with the MeTTa files)
 ]
