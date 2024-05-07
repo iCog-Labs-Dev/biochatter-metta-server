@@ -36,19 +36,19 @@ class Schema(models.Model):
     def schema_file_path(instance, filename):
         base_filename, file_extension = os.path.splitext(filename)
         new_filename = f"schema_config{file_extension}"
-        return os.path.join('bio_data/biocypher_schema', new_filename)
+        return os.path.join('api/bio_data/biocypher_schema', new_filename)
 
     schema_name = models.CharField(max_length=100, default='Schema', unique=True)
-    schema_file = models.FileField(upload_to='bio_data/biocypher_schema')
+    schema_file = models.FileField(upload_to='api/bio_data/biocypher_schema')
 
 class Atomspace(models.Model):
     def metta_file_path(instance, filename):
         base_filename, file_extension = os.path.splitext(filename)
         new_filename = f"{base_filename}{file_extension}"
-        return os.path.join('bio_data/bioatomspace', new_filename)
+        return os.path.join('api/bio_data/bioatomspace', new_filename)
         # new_filename = f"custom_prefix_{instance.pk}{file_extension}"
         # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
-        # return "bio_data/bioatomspace/".format(instance.user.id, filename)
+        # return "api/bio_data/bioatomspace/".format(instance.user.id, filename)
 
     db_name = models.CharField(max_length=100, unique=True)
     nodes = models.CharField(max_length=1000, default='[]')

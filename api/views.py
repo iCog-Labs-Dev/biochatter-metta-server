@@ -179,7 +179,7 @@ class SchemaList(APIView):
         # {
         #     'type': 'node'
         #     'name': 'gene'
-        #     'path': '/bio_data/bioatomspace/gene/_node_2556.metta
+        #     'path': '/api/bio_data/bioatomspace/gene/_node_2556.metta
         # }
         schema = SchemaSerializer( Schema.objects.last() )
         schema_file_path = schema.data.get('schema_file', None)
@@ -222,7 +222,7 @@ class SchemaList(APIView):
         schema_file_path = serialized_schema.get('schema_file', None)
         items = get_schema_items(f'./{schema_file_path}')
 
-        with open('bio_data/schema_mappings.json', 'w') as f:
+        with open('api/bio_data/schema_mappings.json', 'w') as f:
             json.dump(items, f)
 
         update_schema_mappings()
@@ -274,7 +274,7 @@ class AtomspaceList(generics.ListCreateAPIView):
         # entity_type = atomspace_record['entity_type']
         # entity_names = ast.literal_eval(atomspace_record['entity_name'])
 
-        # with open("bio_data/schema_mappings.json", "r+") as jsonFile:
+        # with open("api/api/bio_data/schema_mappings.json", "r+") as jsonFile:
         #     schema = json.load(jsonFile)
         #     for entity_name in entity_names:
         #         schema[f'{entity_type}s'][entity_name]['metta_location'] = atomspace_record['metta_file']

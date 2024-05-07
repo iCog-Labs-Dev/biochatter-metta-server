@@ -55,11 +55,9 @@ def add_message_record(user_data, chat_id, message_model, message_serializer_cla
 
     prompt_engine = BioCypherPromptEngine(
             model_name='gpt-3.5-turbo',
-            # schema_config_or_info_path=f'./{schema_file_path}',
-            # schema_mappings='./bio_data/biocypher_config/schema_mappings.json',
-            
-            schema_config_or_info_path=f'./api/bio_data/biocypher_config/schema_config.yaml',
-            schema_mappings='./api/bio_data/biocypher_config/schema_mappings.json',
+            schema_config_or_info_path=f'./{schema_file_path}',
+            # schema_config_or_info_path=f'./api/bio_data/biocypher_schema/schema_config.yaml',
+            schema_mappings='./api/bio_data/schema_mappings.json',
             openai_api_key='*****'
         )
 
@@ -108,13 +106,13 @@ def update_schema_mappings(atomspace_record=None):
         nodes = ast.literal_eval(atomspace.get('nodes','[]') or '[]')
         edges = ast.literal_eval(atomspace.get('edges','[]') or '[]')
 
-        with open("bio_data/schema_mappings.json", "r+") as schema_mappings:
+        with open("api/bio_data/schema_mappings.json", "r+") as schema_mappings:
             schema = json.load(schema_mappings)
             for node in nodes:
-                schema[f'nodes'][node]['metta_location'] = atomspace.get('node_metta_file', None)
+                schema[f'nodes'][node]['metta_location'] = atomspace.get('node_metta_file', None).lstrip('/')
 
             for edge in edges:
-                schema[f'edges'][edge]['metta_location'] = atomspace.get('edge_metta_file', None)
+                schema[f'edges'][edge]['metta_location'] = atomspace.get('edge_metta_file', None).lstrip('/')
 
             schema_mappings.seek(0)  # rewind cursor to beginning of file
             json.dump(schema, schema_mappings)
