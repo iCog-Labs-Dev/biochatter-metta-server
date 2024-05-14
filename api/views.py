@@ -249,27 +249,31 @@ class AtomspaceList(generics.ListCreateAPIView):
         if db_name is None: 
             return Response('\'db_name\' filed is required.', status=status.HTTP_400_BAD_REQUEST)
 
-        atomspace, created = Atomspace.objects.update_or_create(
-            db_name=db_name,
-            defaults={
-                'nodes': request.data.get('nodes', None),
-                'edges': request.data.get('edges', None),
-                'node_metta_file': request.FILES.get('node_metta_file', None),
-                'edge_metta_file': request.FILES.get('edge_metta_file', None)
-            }
-        )
-        serialized_atomspace = AtomspaceSerializer(atomspace).data
-        # serializer = AtomspaceSerializer(data=request.data)
-        # if serializer.is_valid():
-        #     atomspace_record = Atomspace.objects.create(**serializer.validated_data)
-        #     serialized_record = AtomspaceSerializer(atomspace_record).data
-        #     serializer.save()
-        # else:
-        #     return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
-            
-        # atomspace_record = serialized_record.data
+        try:
+            atomspace, created = Atomspace.objects.update_or_create(
+                db_name=db_name,
+                defaults={
+                    'nodes': request.data.get('nodes', None),
+                    'edges': request.data.get('edges', None),
+                    'node_metta_file': request.FILES.get('node_metta_file', None),
+                    'edge_metta_file': request.FILES.get('edge_metta_file', None)
+                }
+            )
+            serialized_atomspace = AtomspaceSerializer(atomspace).data
+            # serializer = AtomspaceSerializer(data=request.data)
+            # if serializer.is_valid():
+            #     atomspace_record = Atomspace.objects.create(**serializer.validated_data)
+            #     serialized_record = AtomspaceSerializer(atomspace_record).data
+            #     serializer.save()
+            # else:
+            #     return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
+                
+            # atomspace_record = serialized_record.data
 
-        update_schema_mappings(atomspace_record=serialized_atomspace)
+            update_schema_mappings(atomspace_record=serialized_atomspace)
+
+        except Exception as e:
+            return Response(f'Error: {e}', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # entity_type = atomspace_record['entity_type']
         # entity_names = ast.literal_eval(atomspace_record['entity_name'])

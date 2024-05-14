@@ -109,10 +109,16 @@ def update_schema_mappings(atomspace_record=None):
         with open("api/bio_data/schema_mappings.json", "r+") as schema_mappings:
             schema = json.load(schema_mappings)
             for node in nodes:
-                schema[f'nodes'][node]['metta_location'] = atomspace.get('node_metta_file', None).lstrip('/')
+                node_location = atomspace.get('node_metta_file', False)
+                if not node_location:
+                    raise 'Node MeTTa file required!'
+                schema[f'nodes'][node]['metta_location'] = atomspace['node_metta_file'].lstrip('/')
 
             for edge in edges:
-                schema[f'edges'][edge]['metta_location'] = atomspace.get('edge_metta_file', None).lstrip('/')
+                edge_location = atomspace.get('edge_metta_file', False)
+                if not edge_location:
+                    raise 'Edge MeTTa file required!'
+                schema[f'edges'][edge]['metta_location'] = atomspace['edge_metta_file'].lstrip('/')
 
             schema_mappings.seek(0)  # rewind cursor to beginning of file
             json.dump(schema, schema_mappings)
