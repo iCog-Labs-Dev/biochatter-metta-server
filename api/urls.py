@@ -2,16 +2,6 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
-# ---------------------------------- TOPICS ----------------------------------
-    # path('topics/', TopicList.as_view()),
-    # GET - List all topics
-    # POST - Create a topic  | required fields= topic_name(str), topic_file(file)
-                            # | Send request as Multipart formdata
-    # path('topics/<int:pk>/', TopicDetail.as_view()),
-    # GET - Fetch a topic by ID
-    # PUT - Update the topic    | only pass the updated fields
-    # DELETE - Delete the topic
-
 # ---------------------------------- CHATS ----------------------------------
     # path('chats/', ChatListAll.as_view()),
     path('chats/', ChatList.as_view()),
@@ -37,8 +27,24 @@ urlpatterns = [
     path('examples/', ExampleList.as_view()),
     # GET - List all examples
     # POST - Create an example  | required fields = example_text(str)
-    path('examples/<int:pk>/', ExampleDetail.as_view())
+    path('examples/<int:pk>/', ExampleDetail.as_view()),
     # GET - Fetch an example by ID
     # PUT - Update the example    | only pass the updated fields
     # DELETE - Delete the example
+
+# ---------------------------------- SCHEMA ----------------------------------
+    path('schema/', SchemaList.as_view()),
+    # GET - List all entities in the schema
+    # POST - Upload a new schema  | required fields= schema_file(file)
+                                # | Send request as Multipart formdata
+
+# ---------------------------------- ATOMSPACES ----------------------------------
+    path('atomspaces/', AtomspaceList.as_view()),
+    # GET - List all MeTTa files beloning to the schema
+    # POST - Upload a MeTTa file for an entity  | required fields= entity_name(str), metta_file(file)
+                                              # | Send request as Multipart formdata
+    path('atomspaces/<int:pk>/', AtomspaceDetail.as_view()),
+    # GET - Fetch atomspace data by ID
+    # PUT - Update atomspace data    | only pass the updated fields
+    # DELETE - Delete the atomspace data (along with the MeTTa files)
 ]

@@ -7,29 +7,10 @@ from .models import *
 from .serializers import *
 from .utils import *
 
-import os
+import json, os
 from datetime import datetime
-from biochatter_metta.prompts import BioCypherPromptEngine, get_llm_response
-# from biochatter_metta.llm_connect import Conversation, GptConversation
-# =========================================================== TOPIC ===========================================================
-
-# class TopicList(generics.ListCreateAPIView):
-#     serializer_class = TopicSerializer
-#     pagination_class = LimitOffsetPagination
-#     queryset = Topic.objects.all()
-
-#     def list(self, request):
-#         return get_paginated_records(
-#             pagination_class=self.pagination_class,
-#             request=request,
-#             record_items=self.queryset,
-#             record_serializer_class=self.serializer_class
-#         )
-
-# class TopicDetail(generics.RetrieveUpdateDestroyAPIView):
-#     serializer_class = TopicSerializer
-#     queryset = Topic.objects.all()
-
+from biochatter_metta.prompts import get_llm_response
+from biochatter_metta.metta_prompt import get_schema_items
 # =========================================================== CHAT ===========================================================
 
 class ChatList(APIView):
@@ -65,17 +46,17 @@ class ChatList(APIView):
         )
         chat_id = chat_record['id']
 
-        user_record, llm_record = add_message_record(
-            user_data=request.data,
-            chat_id=chat_id,
-            message_model=Message,
-            message_serializer_class=MessageSerializer
-        )
+        # user_record, llm_record = add_message_record(
+        #     user_data=request.data,
+        #     chat_id=chat_id,
+        #     message_model=Message,
+        #     message_serializer_class=MessageSerializer
+        # )
 
         return Response({
             'chat_record': chat_record,
-            'user_record': user_record,
-            'llm_record': llm_record
+            # 'user_record': user_record,
+            # 'llm_record': llm_record
         }, status=status.HTTP_201_CREATED)
 
 class ChatDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -182,3 +163,136 @@ class ExampleDetail(generics.RetrieveUpdateDestroyAPIView):
             record_instance = example_instance,
             update_data = request.data
         )
+
+# =========================================================== SCHEMA ===========================================================
+
+class SchemaList(APIView):
+    # serializer_class = SchemaSerializer
+    # queryset = Schema.objects.all()
+    # TODO: Adding a new schema should delete all the previous ones (including the Atomspaces)
+    def get(self, request):
+        # TODO: get a list of all the nodes & edges in the schema
+            # - get the last schema file uploaded
+            # - call a function from biochatter-metta that takes the .yaml path and lists all the entities
+        # List all the entities' names and types
+        # List any previously recorded file paths for the entities (if any)
+        # {
+        #     'type': 'node'
+        #     'name': 'gene'
+        #     'path': '/api/bio_data/bioatomspace/gene/_node_2556.metta
+        # }
+        schema = SchemaSerializer( Schema.objects.last() )
+        schema_file_path = schema.data.get('schema_file', None)
+
+        # if (schema_file_path is None) or (not os.path.isfile(schema_file_path)):
+        #     return Response('Schema not found!', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        items = get_schema_items(f'./{schema_file_path}')
+
+        nodes = []
+        for node in items['nodes'].keys():
+            nodes.append(node)
+        edges = []
+        for edge in items['edges'].keys():
+            edges.append(edge)
+
+        return Response({
+            'nodes': nodes,
+            'edges': edges
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        # Get the old schema path
+        prev_schema_exists = Schema.objects.exists()
+        if prev_schema_exists:
+            prev_schema = Schema.objects.get(schema_name='Schema') or None
+            prev_schema_path = os.path.abspath(prev_schema.schema_file.path) if prev_schema.schema_file else None
+
+        schema, created = Schema.objects.update_or_create(
+            defaults={'schema_file': request.FILES['schema_file']}
+        )
+
+        # Delete the old schema if the old one was updated
+        if not created and prev_schema_exists: # Schema is updated
+            if prev_schema_path and os.path.isfile(prev_schema_path):
+                os.remove(prev_schema_path)
+
+        # Write to schema_mappings
+        serialized_schema = SchemaSerializer(schema).data
+        schema_file_path = serialized_schema.get('schema_file', None)
+        items = get_schema_items(f'./{schema_file_path}')
+
+        with open('api/bio_data/schema_mappings.json', 'w') as f:
+            json.dump(items, f)
+
+        update_schema_mappings()
+
+        return Response(f"Schema {'Uploaded' if created else 'Updated'}!",
+                        status=status.HTTP_201_CREATED)
+    
+    def delete(self, request):
+        if Schema.objects.exists():
+            schema = Schema.objects.get(schema_name='Schema')
+
+            schema.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+# =========================================================== ATOMSPACE ===========================================================
+
+class AtomspaceList(generics.ListCreateAPIView):
+    serializer_class = AtomspaceSerializer
+    queryset = Atomspace.objects.all()
+
+    def create(self, request):
+        db_name = request.data.get('db_name', None)
+        if db_name is None: 
+            return Response('\'db_name\' filed is required.', status=status.HTTP_400_BAD_REQUEST)
+
+        atomspace, created = Atomspace.objects.update_or_create(
+            db_name=db_name,
+            defaults={
+                'nodes': request.data.get('nodes', None),
+                'edges': request.data.get('edges', None),
+                'node_metta_file': request.FILES.get('node_metta_file', None),
+                'edge_metta_file': request.FILES.get('edge_metta_file', None)
+            }
+        )
+        serialized_atomspace = AtomspaceSerializer(atomspace).data
+        # serializer = AtomspaceSerializer(data=request.data)
+        # if serializer.is_valid():
+        #     atomspace_record = Atomspace.objects.create(**serializer.validated_data)
+        #     serialized_record = AtomspaceSerializer(atomspace_record).data
+        #     serializer.save()
+        # else:
+        #     return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
+            
+        # atomspace_record = serialized_record.data
+
+        update_schema_mappings(atomspace_record=serialized_atomspace)
+
+        # entity_type = atomspace_record['entity_type']
+        # entity_names = ast.literal_eval(atomspace_record['entity_name'])
+
+        # with open("api/api/bio_data/schema_mappings.json", "r+") as jsonFile:
+        #     schema = json.load(jsonFile)
+        #     for entity_name in entity_names:
+        #         schema[f'{entity_type}s'][entity_name]['metta_location'] = atomspace_record['metta_file']
+
+        #     jsonFile.seek(0)  # rewind cursor to beginning of file
+        #     json.dump(schema, jsonFile)
+        #     jsonFile.truncate() # delete any trailing data (if new content is shorter)
+
+        return Response(serialized_atomspace, status=status.HTTP_204_NO_CONTENT)
+    # db_name = models.CharField(max_length=100)
+    # entity_name = models.CharField(max_length=100)
+    # entity_type = models.CharField(max_length=10)
+    # metta_file = models.FileField(upload_to=metta_file_path)
+    # ['gene','transcript']
+    # ['transcribed_to','transcribed_from']
+
+class AtomspaceDetail(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = AtomspaceSerializer
+    queryset = Atomspace.objects.all()
+
+    

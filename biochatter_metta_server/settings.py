@@ -140,5 +140,5 @@ REST_FRAMEWORK = {
     #     'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     # ]
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 20  # Set the default page size
+    'PAGE_SIZE': 200  # Set the default page size
 }
