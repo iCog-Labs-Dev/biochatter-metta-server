@@ -15,7 +15,7 @@ from biochatter_metta.metta_prompt import get_schema_items
 
 class ChatList(APIView):
     def get(self, request):
-        chats = Chat.objects.all().reverse()
+        chats = Chat.objects.all().order_by('-chat_created_at')
         return get_paginated_records(
             pagination_class=LimitOffsetPagination,
             request=request,
